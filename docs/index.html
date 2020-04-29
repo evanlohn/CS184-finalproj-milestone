@@ -15,7 +15,7 @@
     font-family: 'Source Sans Pro', sans-serif;
   }
 </style>
-<title>CS 184 Rasterizer</title>
+<title>CS 184 Final Project Milestone</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
 </head>
@@ -23,9 +23,9 @@
 
 <body>
 
-<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2018</h1>
-<h1 align="middle">Project 1: Rasterizer</h1>
-<h2 align="middle">Evan Lohn, CS184-adf</h2>
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2020</h1>
+<h1 align="middle">Final Project: Rendering Watercolors</h1>
+<h2 align="middle">Evan Lohn, Andrew Wang, Johnathan Zhou</h2>
 
 <br><br>
 
@@ -38,156 +38,6 @@
 
 <h3 align="middle">Part 1: Rasterizing single-color triangles</h3>
 
-<p>My rasterization function first computes for the given triangle</p>
-<ol>
-  <li>the orientation of the vertices (clockwise, counterclockwise)
-   <ul> <li> implementation: Pretend that the first and second sides of the triangle are 3D vectors with a z-coordinate of 0; cross these vectors. The sign of the resulting vector's z-coordinate is positive iff the triangle's orientation (as provided via the ordering of points) was clockwise.
-     </li></ul>
-  </li>
-  <li>normal vectors for each side
-    <ul> <li> implementation: For each side represented as a vector <i>(x, y)</i>, the normal vector that points "in" using an assumption of clockwise orientation is <i>(-y, x)</i>
-   </li></ul>
-  </li>
-  <li>a bounding box in pixel coordinates
-    <ul><li> implementation: the upper-left corner of the bounding box is the minimum <i>x</i> and <i>y</i> out of all three points; the lower-right corner is the maximum <i>x</i> and <i>y</i>.
-     </li></ul>
-  </li>
-</ol>
-
-
-  <p>I then iterate through the coordinates <i>p<sub>ij</sub></i> of each pixel in the bounding box. For each side <i>s</i> of the triangle, I compute the difference <i>d</i> of <i>p<sub>ij</sub></i> and a point
-on side <i>s</i>. I compute the dot product between <i>d</i> and the normal vector to side <i>s</i>, then weight the result by -1 if the triangle's orientation was counterclockwise. The result of this computation is a value
-<i>v</i> such that <i>v >= 0</i> exactly when <i>p<sub>ij</sub></i> is inside the given triangle. Therefore, for all <i>p<sub>ij</sub></i> where <i>v >= 0</i> for each of the three sides, I fill that point with the given color.</p>
-
-<p>This algorithm requires iterating through each point in the bounding box of the triangle.</p>
-  
-<img src="images/basic-test4-interesting.png" align="middle" width="400px"/>
-  
-<p> I thought the above image was interesting because it clearly shows the effect of jaggies due to aliasing.</p>
-
-<p>Here is an example 2x2 gridlike structure using an HTML table. Each <b>tr</b> is a row and each <b>td</b> is a column in that row. You might find this useful for framing and showing your result images in an organized fashion.</p>
-
-<div align="middle">
-  <table style="width=100%">
-    <tr>
-      <td>
-        <img src="images/image1.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
-      </td>
-      <td>
-        <img src="images/image2.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
-      </td>
-    </tr>
-    <br>
-    <tr>
-      <td>
-        <img src="images/image3.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
-      </td>
-      <td>
-        <img src="images/image4.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
-      </td>
-    </tr>
-  </table>
-</div>
-
-
-<h3 align="middle">Part 2: Antialiasing triangles</h3>
-
-  <h4 align="left">Motivation</h4>
-  <p>As can be seen in the last section, simple pixel-center point-in-triangle-based rasterization can leave your rasterized triangles with jagged edges and noticeable discontinuities when the triangles are skinny. We would like to solve this problem by having points along the edge of a triangle be more shaded or less shaded with the triangle color based on how much of the square box representing the pixel actually overlaps with the triangle. </p>
-  
-  <h4 align="left">Supersampling Algorithm</h4>
-  <p>I implemented triangle antialiasing via supersampling. Essentially, I changed the pipeline to ensure that no pixel colors were set in the target frame buffer until the <i>resolve_to_framebuffer</i> function is called. Instead, all coloring requests are handled by modifying the supersample buffer, which is an array of size width x height x sample_rate. For requests to fill entire pixels (i.e. calls to the <i>rasterize_point</i> function), I set every subpixel corresponding to the given pixel to the given color. For <i>rasterize_triangle</i>, I instead loop over and individually set colors of each subpixel based on whether it is inside the triangle or not. In <i>resolve_to_framebuffer</i> (which is called once all drawing requests have finished), I set each pixel in the output frame buffer to be the average of all its corresponding subpixels in the supersample buffer. </p>
-  
-  <h4 align="left">Data Structures</h4>
-  <p>I used a single 1-d std::vector of Colors for my supersample buffer. Conceptually, the array stored 3-D information. To access the i'th supersample aka subpixel of a pixel at location (x, y) I used the formula <i>supersample_buffer[sample_rate * (y * width + x) + i]</i>. In terms of the subpixel grid, the index i represented the subpixel at location x<sub>s</sub>=floor(i/sqrt(sample_rate)), y<sub>s</sub>=i % sqrt(sample_rate). To determine the exact location of each subpixel in the overall image coordinate system (for point-in-triangle tests), I therefore used the formula x<sub>subpixel</sub> = x + (x<sub>s</sub> + 0.5) * sqrt(sample_rate), with the same idea for y<sub>subpixel</sub>.
-
- <h4 align="left">Results</h4>   
-  <div align="middle">
-    <table style="width=100%">
-      <tr>
-        <td>
-          <img src="images/test4-ss1.png" align="middle" width="400px"/>
-          <figcaption align="middle">Rightmost corner of the red triangle at sample_rate=1 (no super-sampling)</figcaption>
-        </td>
-        <td>
-          <img src="images/test4-ss4.png" align="middle" width="400px"/>
-          <figcaption align="middle">Rightmost corner of the red triangle at sample_rate=4 samples/pixel</figcaption>
-        </td>
-        <td>
-          <img src="images/test4-ss16.png" align="middle" width="400px"/>
-          <figcaption align="middle">Rightmost corner of the red triangle at sample_rate=16 samples/pixel</figcaption>
-        </td>
-      </tr>
-    </table>
-  </div>
-  
-<p>Here we see the effects of anti-aliasing on the sharp rightmost corner of the red triangle. As the sample rate increases, the pixels near the corner become lighter and also more connected than in the no-supersampling case. This occurs because the triangle occupies a very small portion of the area of each pixel in the pixels it passes through near that corner. So, without supersampling the triangle passes through only a few pixel centers near the edge, leading to discontinuities in the pixels rasterized and a few fully colored pixels that the full-precision triangle barely intersects. With greater supersampling, pixels that the triangle passes through in non-center sections still receive some amount of color (reducing the size and number of discontinuities of pure white in the shape) and causes pixels with only a small intersection with the triangle to have lighter color. Overall, this leads to a much more pleasing effect visually; the jagged edges in the non-supersampled image above are almost entirely gone in the supersampled versions (at the cost of greater compute and storage required)</p>
-  
-<h3 align="middle">Part 3: Transforms</h3>
-
-  <p>The following robot was constructed by scaling, rotating, and translating basic triangles:
-  <img src="images/dabbing_robot.png" align="middle" width="400px"/>
-    
-  <p> I was attempting to make the robot look like it is dabbing. Dabbing was a popular dance move a few years ago. Alas, no longer :(
-
-<h2 align="middle">Section II: Sampling</h2>
-
-<h3 align="middle">Part 4: Barycentric coordinates</h3>
-
-  <p>Barycentric coordinates are coordinates that tell you how close a point is to each corner of a valid triangle. The three vectors from the origin to each corner of the triangle span for the 2D cartesian plane with an extra "dummy" coordinate added to make the coordinates unique. It is therefore possible to solve a system of linear equations to compute barycentric coordinates for any point (x,y) with respect to any valid triangle (i.e. the corners are not colinear). Below is a visualization of barycentric coordinates. Each vertex of the triangle below has been assigned a color, for example the top left corner was assigned blue. The extent to which any given point in the triangle is blue describes the extent to which that point is closer to the upper left corner than the other two corners.</p>
-  
-<img src="images/color-tri.png" align="middle" width="400px"/>
-  
-<p>Below is another application of the color interpolation technique, this time used to make a color wheel.</p>
-  
-<img src="images/test7-colorwheel.png" align="middle" width="400px"/>
-
-<h3 align="middle">Part 5: "Pixel sampling" for texture mapping</h3>
-
-  <p> Pixel sampling refers to the task of using some function (potentially continuous) function f(u,v) to select a pixel values for locations in an image I(x,y). More concretely, a common version of sampling involves filling a triangle in an image by sampling another triangle from a different "texture" image. I implemented this sampling by iterating over each (sub)pixel in the triangle and calculating the barycentric coordinates for it; I then calculated the pixel-space coordinates to the corresponding barycentric point in the texture triangle. This gave me an "exact" location of the texture to sample.</p>
-  
-  <p>There are two sampling methods I implemented based off the "exact" location to sample. The easiest method is "nearest neighbor" sampling, where I just rounded the coordinates of the exact location to the nearest pixel center in the textured image, then used the color off that pixel as the color to be drawn at the original point of the original triangle being rastered. The other method is bilinier sampling; In that case I take the color of the 4 closest pixels to the exact location and perform three linear interpolations based on the exact location: First between the upper corner colors, second between the lower corner colors (both of these are based on how far the x coordinate is away from the leftmost corner) and third a vertical linear interpolation between the two interpolatedd colors based on the eact y coordinate.</p>
-  
- <div align="middle">
-  <table style="width=100%">
-    <tr>
-      <td>
-        <img src="images/ss1-nearest.png" align="middle" width="400px"/>
-        <figcaption align="middle">No supersampling, nearest neighbor interpolation</figcaption>
-      </td>
-      <td>
-        <img src="images/ss16-nearest.png" align="middle" width="400px"/>
-        <figcaption align="middle">4 by 4 supersampling, nearest neighbor interpolation</figcaption>
-      </td>
-    </tr>
-    <br>
-    <tr>
-      <td>
-        <img src="images/ss1-bilinear.png" align="middle" width="400px"/>
-        <figcaption align="middle">No supersampling, bilinear interpolation</figcaption>
-      </td>
-      <td>
-        <img src="images/ss16-bilinear.png" align="middle" width="400px"/>
-        <figcaption align="middle">4 by 4 supersampling, bilinear interpolation</figcaption>
-      </td>
-    </tr>
-  </table>
-</div>
-  
-<p>The above images contrast the effects of supersampling and different interpolation types. With no supersampling, bilinear interpolation has a significant advantage over nearest neighbor in terms of image quality. We see the discontinuous white lines in the top left image effectively becoming more continuous in the bottom left image, which could be viewed as a form of anti-aliasing. When supersampling is added, the effects are far less noticeable. This is because super-sampling is already doing a kind of averaging (or equivalently, filtering before sampling),so adding extra interpolation in the production of these samples doesn't make the image too much better. Although both supersampling and linear interpolation are forms of antialiasing, supersampling is likely more useful in cases with large color gradients, because being able to select more fine-grain samples to average would produce a better estimate of the true "average pixel color" than two linear interpolations could.</p>
-
-<h3 align="middle">Part 6: "Level sampling" with mipmaps for texture mapping</h3>
-
-  <p>Level sampling refers to strategies for texturing sampling using different mipmap layers. Mipmaps store a given texture at different resolutions, and when trying to display an image at a particular resolution, it makes intuitive sense to sample from a texture at a similar level of resolution. With that in mind, I implemented three different level sampling strategies. The first strategy is "level 0" sampling, which simply samples from the full-resolution texture no matter what. This technique suffers from the fact that the texture might be much higher resolution than the image it is being mapped onto, so the pixel sampling procedure draws from a much smaller pool of pixels than we might want to when sampling the color for each pixel of the texturized triangle. Another strategy ("nearest") simply samples using the mipmap layer closest in resolution to the actual triangle. The last method "linear" calculates a continuous measure of the image resolution, then linearly interpolates between the samples taken from mipmap levels above and below in resolution.</p>
-
-<h2 align="middle">Section III: Art Competition</h2>
-<p>If you are not participating in the optional art competition, don't worry about this section!</p>
-
-<h3 align="middle">Part 7: Draw something interesting!</h3>
 
 </body>
 </html>
