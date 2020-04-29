@@ -32,9 +32,10 @@
 <div>
 
 <h2 align="middle">Overview</h2>
-<p>Give a high-level overview of what you implemented in this project. Think about what you've built as a whole. Share your thoughts on what interesting things you've learned from completing the project.</p>
+<p>Our projecct goal is to adapt Project 3 to simulate and render watercolor-like graphics on 3D objects.</p>
 
-<h2 align="middle">Section I: Rasterization</h2>
+<h2 align="middle">Progress</h2>
+  <p> So far, we have decided what paper(s) to base our work on, and the general idea for how we will implement the watercolor simulation and rendering within the framework of project 3-1. The main challenges we had were that project 3-1 has no built-in code for simulation, and we had to decide how to store and later render our simulation results. To solve this, we added another class on the same level of abstraction as the pathracer whose sole purpose is to perform the simulation of watercolor brush strokes and store the results in the half-ege mesh representing the scene objects. We plan to modify the definition of a bsdf to allow for objects in the scene to have a different bsdf at different points to allow for the results of our watercolor brush simulation to be reflected during object rendering. </p>
 
 <h3 align="middle">Part 1: Rasterizing single-color triangles</h3>
 
